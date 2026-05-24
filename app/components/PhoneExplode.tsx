@@ -3,62 +3,51 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 
-// screen.png is 1:1 (1024×1024); phone.png and base.png are 3:2 (1536×1024).
-// Display sizes are chosen so the phone subject inside each image
-// appears at roughly the same visual height (~240px).
 const PARTS = [
   {
     src: "/screen.png",
     label: "Ceramic Shield",
-    description:
-      "Vidrio con nanocristales cerámicos integrados. 4× más resistente a las caídas.",
-    startX: 0,
-    startY: 0,
-    targetX: -60,
-    targetY: 200,
+    description: "Vidrio con nanocristales cerámicos. 4× más resistente a las caídas.",
+    startX: 0, startY: 0,
+    targetX: -60,  targetY: 200,
+    mtX: 0,        mtY: 155,
     rotation: 4,
     side: "left" as const,
-    z: 30,
-    step: "03",
-    w: 300,
-    h: 300,
-    alwaysVisible: true, // the assembled phone shown at rest
+    z: 30, step: "03",
+    w: 300, h: 300,
+    mw: 190, mh: 190,
+    alwaysVisible: true,
   },
   {
     src: "/phone.png",
     label: "Super Retina XDR",
-    description:
-      "Pantalla OLED de 6.7\" con ProMotion 120Hz y brillo pico de 2000 nits.",
-    startX: 0,
-    startY: 0,
-    targetX: -230,
-    targetY: -165,
+    description: "OLED 6.7\" ProMotion 120Hz. Brillo pico de 2000 nits.",
+    startX: 0, startY: 0,
+    targetX: -230, targetY: -165,
+    mtX: -85,      mtY: -145,
     rotation: -8,
     side: "left" as const,
-    z: 20,
-    step: "01",
-    w: 400,
-    h: 267,
+    z: 20, step: "01",
+    w: 400, h: 267,
+    mw: 250, mh: 167,
     alwaysVisible: false,
   },
   {
     src: "/base.png",
     label: "Marco de Titanio",
-    description:
-      "Titanio grado aeroespacial. Más resistente que el acero y un 40% más ligero.",
-    startX: 0,
-    startY: 0,
-    targetX: 220,
-    targetY: 0,
+    description: "Titanio grado aeroespacial. 40% más ligero que el acero.",
+    startX: 0, startY: 0,
+    targetX: 220,  targetY: 0,
+    mtX: 85,       mtY: 10,
     rotation: 7,
     side: "right" as const,
-    z: 10,
-    step: "02",
-    w: 420,
-    h: 280,
+    z: 10, step: "02",
+    w: 420, h: 280,
+    mw: 260, mh: 173,
     alwaysVisible: false,
   },
 ] as const;
+
 
 function cubicEase(t: number) {
   return t < 0.5 ? 4 * t * t * t : 1 - (-2 * t + 2) ** 3 / 2;
@@ -67,6 +56,14 @@ function cubicEase(t: number) {
 export default function PhoneExplode() {
   const wrapperRef = useRef<HTMLDivElement>(null);
   const [scrollPct, setScrollPct] = useState(0);
+  const [mobile, setMobile] = useState(false);
+
+  useEffect(() => {
+    const check = () => setMobile(window.innerWidth < 640);
+    check();
+    window.addEventListener("resize", check);
+    return () => window.removeEventListener("resize", check);
+  }, []);
 
   useEffect(() => {
     const onScroll = () => {
@@ -81,19 +78,17 @@ export default function PhoneExplode() {
     return () => window.removeEventListener("scroll", onScroll);
   }, []);
 
-  const p = cubicEase(Math.min(scrollPct * 1.5, 1));
-  // Parts with alwaysVisible=false only appear after scroll 28%,
-  // by which point they've already moved ~22% toward their targets
-  // so they seem to peel off the phone rather than emerge from inside.
-  const partAlpha = (alwaysVisible: boolean) =>
-    alwaysVisible ? 1 : Math.max(0, Math.min(1, (scrollPct - 0.28) / 0.18));
-  const labelAlpha = Math.max(0, Math.min(1, (scrollPct - 0.38) / 0.25));
+  const p          = cubicEase(Math.min(scrollPct * 1.5, 1));
+  const partAlpha  = (always: boolean) =>
+    always ? 1 : Math.max(0, Math.min(1, (scrollPct - 0.28) / 0.18));
   const titleAlpha = Math.max(0, 1 - scrollPct * 2.8);
+  const showPanel  = scrollPct > 0.38;
 
   return (
     <section ref={wrapperRef} className="relative h-[500vh]">
-      <div className="sticky top-0 h-screen flex flex-col overflow-hidden bg-[#060606]">
-        {/* Ambient purple glow */}
+      <div className="sticky top-0 h-screen bg-[#060606]">
+
+        {/* Ambient glow */}
         <div
           className="absolute inset-0 pointer-events-none"
           style={{
@@ -102,32 +97,41 @@ export default function PhoneExplode() {
           }}
         />
 
-        {/* Zone 1 — title */}
+        {/* Title */}
         <div
-          className="relative z-10 flex-none pt-12 pb-4 text-center pointer-events-none"
+          className="absolute top-10 inset-x-0 z-40 text-center pointer-events-none"
           style={{ opacity: titleAlpha }}
         >
-          <h2 className="text-white text-5xl font-bold tracking-tight leading-tight">
-            Ingeniería
-            <br />
-            reimaginada
+          <h2 className="text-white text-3xl sm:text-5xl font-bold tracking-tight leading-tight">
+            Ingeniería<br />reimaginada
           </h2>
-          <p className="text-zinc-600 mt-4 text-xs tracking-[0.28em] uppercase">
+          <p className="text-zinc-600 mt-3 text-[10px] sm:text-xs tracking-[0.22em] sm:tracking-[0.28em] uppercase">
             Scroll para descubrir cada componente
           </p>
         </div>
 
-        {/* Zone 2 — phone (flex-1 so it fills the space between title and tagline) */}
-        <div className="relative flex-1 flex items-center justify-center">
-          {/* 1×1 anchor at the center of this zone */}
-          <div className="relative" style={{ width: 1, height: 1 }}>
+        {/* Phone anchor — centered + slight downward offset to clear the title */}
+        <div
+          className="absolute"
+          style={{
+            left: "50%",
+            top: "50%",
+            width: 1,
+            height: 1,
+            transform: `translateY(${mobile ? "5vh" : "3vh"})`,
+          }}
+        >
           {PARTS.map((part) => {
-            const x = part.startX + p * (part.targetX - part.startX);
-            const y = part.startY + p * (part.targetY - part.startY);
-            const r = p * part.rotation;
-            // subtract half-dimensions to center the element on the anchor point
-            const tx = x - part.w / 2;
-            const ty = y - part.h / 2;
+            const tx0 = mobile ? part.mtX : part.targetX;
+            const ty0 = mobile ? part.mtY : part.targetY;
+            const w   = mobile ? part.mw  : part.w;
+            const h   = mobile ? part.mh  : part.h;
+
+            const x  = part.startX + p * (tx0 - part.startX);
+            const y  = part.startY + p * (ty0 - part.startY);
+            const r  = p * part.rotation;
+            const tx = x - w / 2;
+            const ty = y - h / 2;
 
             return (
               <div
@@ -135,10 +139,8 @@ export default function PhoneExplode() {
                 className="absolute"
                 style={{
                   zIndex: part.z,
-                  left: 0,
-                  top: 0,
-                  width: part.w,
-                  height: part.h,
+                  left: 0, top: 0,
+                  width: w, height: h,
                   opacity: partAlpha(part.alwaysVisible),
                   transform: `translate(${tx}px, ${ty}px) rotate(${r}deg)`,
                   willChange: "transform, opacity",
@@ -148,60 +150,39 @@ export default function PhoneExplode() {
                   src={part.src}
                   alt={part.label}
                   fill
-                  sizes={`${part.w}px`}
+                  sizes={`${w}px`}
                   className="object-contain"
+                  style={{
+                    filter: showPanel ? "brightness(0.35)" : "brightness(1)",
+                    transition: "filter 0.5s ease",
+                  }}
                   priority
                 />
 
-                {/* Label */}
+                {/* Description on top of the part */}
                 <div
-                  className={[
-                    "absolute top-1/2 -translate-y-1/2 pointer-events-none",
-                    "hidden sm:flex items-start gap-3",
-                    part.side === "left" ? "right-full" : "left-full",
-                  ].join(" ")}
-                  style={{ opacity: labelAlpha }}
+                  className="absolute inset-0 flex flex-col items-center justify-center p-3 sm:p-4 text-center pointer-events-none"
+                  style={{
+                    opacity: showPanel ? 1 : 0,
+                    transition: "opacity 0.5s ease 0.15s",
+                  }}
                 >
-                  {part.side === "right" && (
-                    <div className="mt-[9px] w-8 h-px bg-white/20 flex-shrink-0" />
-                  )}
-                  <div
-                    className={
-                      part.side === "left" ? "text-right" : "text-left"
-                    }
-                  >
-                    <span className="block text-white/25 text-[10px] font-mono tracking-widest mb-1">
-                      {part.step}
-                    </span>
-                    <span className="block text-white text-sm font-semibold tracking-wide whitespace-nowrap">
-                      {part.label}
-                    </span>
-                    <p
-                      className="text-zinc-500 text-xs leading-relaxed mt-1"
-                      style={{ maxWidth: 165 }}
-                    >
-                      {part.description}
-                    </p>
-                  </div>
-                  {part.side === "left" && (
-                    <div className="mt-[9px] w-8 h-px bg-white/20 flex-shrink-0" />
-                  )}
+                  <span className="block text-white/30 text-[9px] font-mono tracking-widest mb-1">
+                    {part.step}
+                  </span>
+                  <span className="block text-white text-[11px] sm:text-sm font-semibold tracking-wide leading-tight">
+                    {part.label}
+                  </span>
+                  <p className="text-zinc-300 text-[9px] sm:text-[11px] leading-snug mt-1.5 max-w-[120px] sm:max-w-none">
+                    {part.description}
+                  </p>
                 </div>
               </div>
             );
           })}
-          </div>
         </div>
 
-        {/* Zone 3 — tagline */}
-        <div
-          className="relative z-10 flex-none pb-10 text-center pointer-events-none"
-          style={{ opacity: labelAlpha }}
-        >
-          <p className="text-zinc-700 text-[11px] tracking-[0.3em] uppercase">
-            Smart · Diseñado para resistir
-          </p>
-        </div>
+
       </div>
     </section>
   );
